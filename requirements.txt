@@ -1,4 +1,6 @@
-pyTelegramBotAPI==5.3.1
-aiohttp==3.8.1
-qrcode==7.3
-telebot 
+pyTelegramBotAPI
+aiohttp
+qrcode
+Pillow
+urllib3
+telebot
