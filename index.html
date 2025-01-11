@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Web Chat Experience</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.8.0/styles/github-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.8.0/build/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <style>
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .animate-gradient {
+            background: linear-gradient(270deg, #3b82f6, #8b5cf6, #ec4899);
+            background-size: 200% 200%;
+            animation: gradient 15s ease infinite;
+        }
+        .transition-transform { transition: transform 0.3s ease-in-out; }
+        
+        /* Markdown Styles */
+        .markdown-content pre {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            border: 1px solid var(--text-secondary);
+        }
+        .markdown-content code {
+            background: var(--bg-primary);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', Courier, monospace;
+            color: var(--text-primary);
+        }
+        .markdown-content p {
+            margin: 0.5rem 0;
+        }
+        .markdown-content ul, .markdown-content ol {
+            margin-left: 1.5rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .typing-dot {
+            width: 4px;
+            height: 4px;
+            background: currentColor;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.5); }
+        }
+        :root {
+            --bg-primary: #f3f4f6;
+            --bg-secondary: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #4b5563;
+            --accent-color: #3b82f6;
+        }
+        .dark {
+            --bg-primary: #1f2937;
+            --bg-secondary: #111827;
+            --text-primary: #f3f4f6;
+            --text-secondary: #d1d5db;
+            --accent-color: #60a5fa;
+        }
+        @media (max-width: 640px) {
+            #settings-panel {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100%;
+                height: 100%;
+                transform: translateY(100%);
+                transition: transform 0.3s ease-in-out;
+            }
+            #settings-panel.show {
+                transform: translateY(0);
+            }
+        }
+        /* Improved scrollbar styles */
+        #chat-area::-webkit-scrollbar {
+            width: 0.5rem;
+        }
+        #chat-area::-webkit-scrollbar-thumb {
+            background-color: var(--text-secondary);
+            border-radius: 0.25rem;
+        }
+        #chat-area::-webkit-scrollbar-track {
+            background-color: var(--bg-secondary);
+        }
+        #chat-area {
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-secondary) var(--bg-secondary);
+        }
+        /* Dark mode specific styles */
+        .dark .markdown-content pre {
+            background: #1e1e1e;
+        }
+        .dark .markdown-content code {
+            background: #2d2d2d;
+            color: #d4d4d4;
+        }
+    </style>
+</head>
+<body class="bg-primary text-primary min-h-screen flex flex-col transition-colors duration-300">
+    <header class="fixed top-0 left-0 right-0 bg-secondary bg-opacity-80 backdrop-blur-md z-20 transition-colors duration-300">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-2xl font-bold animate-gradient bg-clip-text text-transparent">AI Web Chat</h1>
+            <button id="settings-btn" class="p-2 rounded-full hover:bg-opacity-10 hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-accent" title="Settings">
+                <i data-lucide="settings" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-grow pt-16 pb-20">
+        <div id="chat-area" class="container mx-auto px-4 space-y-6 overflow-y-auto max-h-[calc(100vh-9rem)]">
+            <!-- Chat messages will be added here -->
+        </div>
+    </main>
+
+    <footer class="fixed bottom-0 left-0 right-0 bg-secondary bg-opacity-80 backdrop-blur-md z-10 transition-colors duration-300">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center bg-primary rounded-full shadow-lg transition-colors duration-300">
+                <input type="text" id="user-input" class="flex-grow px-6 py-3 bg-transparent border-none focus:outline-none focus:ring-0 text-primary placeholder-secondary transition-colors duration-300" placeholder="Ask a follow up...">
+                <button id="send-btn" class="p-3 hover:bg-opacity-10 hover:bg-gray-600 rounded-full transition-colors focus:outline-none mr-2" title="Gửi tin nhắn">
+                    <i data-lucide="send" class="w-5 h-5 text-secondary transition-colors duration-300"></i>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <div id="settings-panel" class="fixed top-16 right-4 bg-secondary p-4 rounded-lg shadow-lg transform translate-x-full transition-transform z-30">
+        <button id="close-settings" class="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <h2 class="text-xl font-bold mb-4 text-primary">Cài đặt</h2>
+        <div class="space-y-4">
+            <button id="theme-toggle" class="w-full p-2 rounded bg-primary hover:bg-opacity-90 transition-colors flex items-center justify-between text-primary">
+                <span>Chế độ tối</span>
+                <i data-lucide="moon" class="w-5 h-5"></i>
+            </button>
+            <button id="save-chat" class="w-full p-2 rounded bg-primary hover:bg-opacity-90 transition-colors flex items-center justify-between text-primary">
+                <span>Lưu cuộc trò chuyện</span>
+                <i data-lucide="download" class="w-5 h-5"></i>
+            </button>
+            <button id="clear-chat" class="w-full p-2 rounded bg-primary hover:bg-opacity-90 transition-colors flex items-center justify-between text-primary">
+                <span>Xóa cuộc trò chuyện</span>
+                <i data-lucide="trash-2" class="w-5 h-5"></i>
+            </button>
+            <button id="help-btn" class="w-full p-2 rounded bg-primary hover:bg-opacity-90 transition-colors flex items-center justify-between text-primary">
+                <span>Trợ giúp</span>
+                <i data-lucide="help-circle" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Lucide icons
+            lucide.createIcons();
+
+            const API_KEY = 'AIzaSyD8w26xocnLvMsJR6HhVaBK5zvh0xAbHx4';
+            const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+            
+            const chatArea = document.getElementById('chat-area');
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            const settingsBtn = document.getElementById('settings-btn');
+            const settingsPanel = document.getElementById('settings-panel');
+            const closeSettingsBtn = document.getElementById('close-settings');
+            const themeToggle = document.getElementById('theme-toggle');
+            const saveChat = document.getElementById('save-chat');
+            const clearChat = document.getElementById('clear-chat');
+
+            let chatHistory = [];
+            let isScrolledToBottom = true;
+
+            function showTypingIndicator() {
+                const typingDiv = document.createElement('div');
+                typingDiv.id = 'typing-indicator';
+                typingDiv.className = 'flex justify-start items-end space-x-2';
+                typingDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center bg-accent">
+                        <i data-lucide="bot" class="w-5 h-5"></i>
+                    </div>
+                    <div class="typing-indicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                `;
+                chatArea.appendChild(typingDiv);
+                lucide.createIcons();
+                scrollToBottom();
+            }
+
+            function removeTypingIndicator() {
+                const typingIndicator = document.getElementById('typing-indicator');
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
+            }
+
+            function scrollToBottom() {
+                chatArea.scrollTop = chatArea.scrollHeight;
+                isScrolledToBottom = true;
+            }
+
+            function isNearBottom() {
+                const threshold = 100; // pixels
+                return chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight < threshold;
+            }
+
+            chatArea.addEventListener('scroll', () => {
+                isScrolledToBottom = isNearBottom();
+            });
+
+            function addMessage(content, isUser = false, isError = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'} items-end space-x-2 mb-4`;
+                
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = `w-8 h-8 rounded-full flex items-center justify-center ${isUser ? 'bg-accent order-2' : 'bg-accent'}`;
+                avatarDiv.innerHTML = `<i data-lucide="${isUser ? 'user' : 'bot'}" class="w-5 h-5"></i>`;
+                
+                const messageBubble = document.createElement('div');
+                messageBubble.className = `max-w-[75%] ${isUser ? 'text-right' : ''} markdown-content`;
+                
+                if (!isUser && !isError) {
+                    const sanitizedContent = DOMPurify.sanitize(marked.parse(content));
+                    messageBubble.innerHTML = sanitizedContent;
+                    setTimeout(() => {
+                        messageBubble.querySelectorAll('pre code').forEach((block) => {
+                            hljs.highlightElement(block);
+                        });
+                    }, 0);
+                } else {
+                    messageBubble.textContent = content;
+                }
+                
+                messageDiv.appendChild(avatarDiv);
+                messageDiv.appendChild(messageBubble);
+                chatArea.appendChild(messageDiv);
+                
+                if (isScrolledToBottom) {
+                    scrollToBottom();
+                } else {
+                    showNewMessageIndicator();
+                }
+                
+                lucide.createIcons();
+
+                chatHistory.push({ content, isUser, timestamp: new Date().toISOString() });
+            }
+
+            function showNewMessageIndicator() {
+                let indicator = document.getElementById('new-message-indicator');
+                if (!indicator) {
+                    indicator = document.createElement('div');
+                    indicator.id = 'new-message-indicator';
+                    indicator.className = 'fixed bottom-20 right-4 bg-accent text-white px-4 py-2 rounded-full cursor-pointer shadow-lg';
+                    indicator.textContent = 'New Message';
+                    indicator.onclick = () => {
+                        scrollToBottom();
+                        indicator.remove();
+                    };
+                    document.body.appendChild(indicator);
+                }
+            }
+
+            async function sendMessage(message) {
+                try {
+                    showTypingIndicator();
+                    const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{
+                                    text: message
+                                }]
+                            }]
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('API request failed');
+                    }
+
+                    const data = await response.json();
+                    removeTypingIndicator();
+                    
+                    if (data.candidates && data.candidates[0].content.parts[0].text) {
+                        let botResponse = data.candidates[0].content.parts[0].text;
+                        
+                        botResponse = botResponse.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+                            return `<pre><code class="language-${lang || 'plaintext'}">${code.trim().replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+                        });
+
+                        addMessage(botResponse);
+                    } else {
+                        throw new Error('Invalid response format');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    removeTypingIndicator();
+                    addMessage('Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.', false, true);
+                }
+            }
+
+            sendBtn.addEventListener('click', async () => {
+                const message = userInput.value.trim();
+                if (message) {
+                    addMessage(message, true);
+                    userInput.value = '';
+                    await sendMessage(message);
+                }
+            });
+
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendBtn.click();
+                }
+            });
+
+            settingsBtn.addEventListener('click', () => {
+                settingsPanel.classList.toggle('show');
+            });
+
+            closeSettingsBtn.addEventListener('click', () => {
+                settingsPanel.classList.remove('show');
+            });
+
+            themeToggle.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                
+                const icon = themeToggle.querySelector('i');
+                icon.setAttribute('data-lucide', isDarkMode ? 'sun' : 'moon');
+                lucide.createIcons();
+
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            });
+
+            saveChat.addEventListener('click', () => {
+                const chatData = JSON.stringify(chatHistory, null, 2);
+                const blob = new Blob([chatData], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `chat-history-${new Date().toISOString()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            clearChat.addEventListener('click', () => {
+                if (confirm('Bạn có chắc chắn muốn xóa toàn bộ cuộc trò chuyện?')) {
+                    chatArea.innerHTML = '';
+                    chatHistory = [];
+                    addMessage('Xin chào! Tôi là trợ lý AI. Bạn có câu hỏi gì không?');
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (window.innerWidth <= 640 && !settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
+                    settingsPanel.classList.remove('show');
+                }
+            });
+
+            function setInitialTheme() {
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.classList.toggle('dark', prefersDark);
+                const icon = themeToggle.querySelector('i');
+                if (icon) {
+                    icon.setAttribute('data-lucide', prefersDark ? 'sun' : 'moon');
+                    lucide.createIcons();
+                }
+            }
+
+            setInitialTheme();
+
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setInitialTheme);
+
+            addMessage("Xin chào! Tôi là trợ lý AI. Bạn có câu hỏi gì không?");
+        });
+    </script>
+</body>
+</html>
