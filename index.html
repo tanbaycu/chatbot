@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -80,34 +80,35 @@
             --text-secondary: #d1d5db;
             --accent-color: #60a5fa;
         }
-        @media (max-width: 640px) {
-            #settings-panel {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                width: 100%;
-                height: 100%;
-                transform: translateY(100%);
-                transition: transform 0.3s ease-in-out;
-            }
-            #settings-panel.show {
-                transform: translateY(0);
-            }
+        #settings-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            transform: translateY(-100%);
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            z-index: 50;
+            opacity: 0;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        #settings-panel.show {
+            transform: translateY(0);
+            opacity: 1;
         }
         /* Improved scrollbar styles */
-        #chat-area::-webkit-scrollbar {
+        #chat-area::-webkit-scrollbar, #settings-panel::-webkit-scrollbar {
             width: 0.5rem;
         }
-        #chat-area::-webkit-scrollbar-thumb {
+        #chat-area::-webkit-scrollbar-thumb, #settings-panel::-webkit-scrollbar-thumb {
             background-color: var(--text-secondary);
             border-radius: 0.25rem;
         }
-        #chat-area::-webkit-scrollbar-track {
+        #chat-area::-webkit-scrollbar-track, #settings-panel::-webkit-scrollbar-track {
             background-color: var(--bg-secondary);
         }
-        #chat-area {
+        #chat-area, #settings-panel {
             scrollbar-width: thin;
             scrollbar-color: var(--text-secondary) var(--bg-secondary);
         }
@@ -119,17 +120,50 @@
             background: #2d2d2d;
             color: #d4d4d4;
         }
+        /* Smooth transition for dark mode */
+        body, #settings-panel, .bg-primary, .bg-secondary, .text-primary, .text-secondary {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
     </style>
 </head>
 <body class="bg-primary text-primary min-h-screen flex flex-col transition-colors duration-300">
     <header class="fixed top-0 left-0 right-0 bg-secondary bg-opacity-80 backdrop-blur-md z-20 transition-colors duration-300">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <h1 class="text-2xl font-bold animate-gradient bg-clip-text text-transparent">AI Web Chat</h1>
+            <h1 class="text-2xl font-bold animate-gradient bg-clip-text text-transparent">AI Web</h1>
             <button id="settings-btn" class="p-2 rounded-full hover:bg-opacity-10 hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-accent" title="Settings">
                 <i data-lucide="settings" class="w-6 h-6"></i>
             </button>
         </div>
     </header>
+
+    <div id="settings-panel" class="bg-secondary bg-opacity-95">
+        <div class="container mx-auto px-4 py-8 h-full flex flex-col">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-primary">Cài đặt</h2>
+                <button id="close-settings" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow">
+                <button id="theme-toggle" class="p-4 rounded-lg bg-primary hover:bg-opacity-90 transition-colors flex items-center justify-between text-primary border border-accent hover:shadow-md">
+                    <span class="text-lg font-medium">Chế độ tối</span>
+                    <i data-lucide="moon" class="w-8 h-8"></i>
+                </button>
+                <button id="save-chat" class="p-4 rounded-lg bg-primary hover:bg-opacity-90 transition-colors flex items-center justify-between text-primary border border-accent hover:shadow-md">
+                    <span class="text-lg font-medium">Lưu cuộc trò chuyện</span>
+                    <i data-lucide="download" class="w-8 h-8"></i>
+                </button>
+                <button id="clear-chat" class="p-4 rounded-lg bg-primary hover:bg-opacity-90 transition-colors flex items-center justify-between text-primary border border-accent hover:shadow-md">
+                    <span class="text-lg font-medium">Xóa cuộc trò chuyện</span>
+                    <i data-lucide="trash-2" class="w-8 h-8"></i>
+                </button>
+                <button id="help-btn" class="p-4 rounded-lg bg-primary hover:bg-opacity-90 transition-colors flex items-center justify-between text-primary border border-accent hover:shadow-md">
+                    <span class="text-lg font-medium">Trợ giúp</span>
+                    <i data-lucide="help-circle" class="w-8 h-8"></i>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <main class="flex-grow pt-16 pb-20">
         <div id="chat-area" class="container mx-auto px-4 space-y-6 overflow-y-auto max-h-[calc(100vh-9rem)]">
@@ -140,38 +174,13 @@
     <footer class="fixed bottom-0 left-0 right-0 bg-secondary bg-opacity-80 backdrop-blur-md z-10 transition-colors duration-300">
         <div class="container mx-auto px-4 py-3">
             <div class="flex items-center bg-primary rounded-full shadow-lg transition-colors duration-300">
-                <input type="text" id="user-input" class="flex-grow px-6 py-3 bg-transparent border-none focus:outline-none focus:ring-0 text-primary placeholder-secondary transition-colors duration-300" placeholder="Ask a follow up...">
+                <input type="text" id="user-input" class="flex-grow px-6 py-3 bg-transparent border-none focus:outline-none focus:ring-0 text-primary placeholder-secondary transition-colors duration-300" placeholder="Hỏi điều gì đó...">
                 <button id="send-btn" class="p-3 hover:bg-opacity-10 hover:bg-gray-600 rounded-full transition-colors focus:outline-none mr-2" title="Gửi tin nhắn">
                     <i data-lucide="send" class="w-5 h-5 text-secondary transition-colors duration-300"></i>
                 </button>
             </div>
         </div>
     </footer>
-
-    <div id="settings-panel" class="fixed top-16 right-4 bg-secondary p-4 rounded-lg shadow-lg transform translate-x-full transition-transform z-30">
-        <button id="close-settings" class="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-            <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-        <h2 class="text-xl font-bold mb-4 text-primary">Cài đặt</h2>
-        <div class="space-y-4">
-            <button id="theme-toggle" class="w-full p-2 rounded bg-primary hover:bg-opacity-90 transition-colors flex items-center justify-between text-primary">
-                <span>Chế độ tối</span>
-                <i data-lucide="moon" class="w-5 h-5"></i>
-            </button>
-            <button id="save-chat" class="w-full p-2 rounded bg-primary hover:bg-opacity-90 transition-colors flex items-center justify-between text-primary">
-                <span>Lưu cuộc trò chuyện</span>
-                <i data-lucide="download" class="w-5 h-5"></i>
-            </button>
-            <button id="clear-chat" class="w-full p-2 rounded bg-primary hover:bg-opacity-90 transition-colors flex items-center justify-between text-primary">
-                <span>Xóa cuộc trò chuyện</span>
-                <i data-lucide="trash-2" class="w-5 h-5"></i>
-            </button>
-            <button id="help-btn" class="w-full p-2 rounded bg-primary hover:bg-opacity-90 transition-colors flex items-center justify-between text-primary">
-                <span>Trợ giúp</span>
-                <i data-lucide="help-circle" class="w-5 h-5"></i>
-            </button>
-        </div>
-    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -278,7 +287,7 @@
                     indicator = document.createElement('div');
                     indicator.id = 'new-message-indicator';
                     indicator.className = 'fixed bottom-20 right-4 bg-accent text-white px-4 py-2 rounded-full cursor-pointer shadow-lg';
-                    indicator.textContent = 'New Message';
+                    indicator.textContent = 'Tin nhắn mới';
                     indicator.onclick = () => {
                         scrollToBottom();
                         indicator.remove();
@@ -346,24 +355,31 @@
             });
 
             settingsBtn.addEventListener('click', () => {
-                settingsPanel.classList.toggle('show');
+                settingsPanel.classList.add('show');
             });
 
             closeSettingsBtn.addEventListener('click', () => {
                 settingsPanel.classList.remove('show');
             });
 
-            themeToggle.addEventListener('click', () => {
-                document.documentElement.classList.toggle('dark');
-                const isDarkMode = document.documentElement.classList.contains('dark');
+            function setDarkMode(isDark) {
+                document.documentElement.classList.toggle('dark', isDark);
+                localStorage.setItem('darkMode', isDark);
                 
-                const icon = themeToggle.querySelector('i');
-                icon.setAttribute('data-lucide', isDarkMode ? 'sun' : 'moon');
-                lucide.createIcons();
+                const themeToggleIcon = themeToggle.querySelector('i');
+                if (themeToggleIcon) {
+                    themeToggleIcon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+                    lucide.createIcons();
+                }
 
                 document.querySelectorAll('pre code').forEach((block) => {
                     hljs.highlightElement(block);
                 });
+            }
+
+            themeToggle.addEventListener('click', () => {
+                const isDark = !document.documentElement.classList.contains('dark');
+                setDarkMode(isDark);
             });
 
             saveChat.addEventListener('click', () => {
@@ -388,24 +404,25 @@
             });
 
             document.addEventListener('click', (e) => {
-                if (window.innerWidth <= 640 && !settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
+                if (!settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
                     settingsPanel.classList.remove('show');
                 }
             });
 
             function setInitialTheme() {
+                const savedDarkMode = localStorage.getItem('darkMode');
                 const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                document.documentElement.classList.toggle('dark', prefersDark);
-                const icon = themeToggle.querySelector('i');
-                if (icon) {
-                    icon.setAttribute('data-lucide', prefersDark ? 'sun' : 'moon');
-                    lucide.createIcons();
-                }
+                const shouldBeDark = savedDarkMode === 'true' || (savedDarkMode === null && prefersDark);
+                setDarkMode(shouldBeDark);
             }
 
             setInitialTheme();
 
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setInitialTheme);
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                if (localStorage.getItem('darkMode') === null) {
+                    setDarkMode(e.matches);
+                }
+            });
 
             addMessage("Xin chào! Tôi là trợ lý AI. Bạn có câu hỏi gì không?");
         });
